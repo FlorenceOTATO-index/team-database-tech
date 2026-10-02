@@ -1,0 +1,66 @@
+column,state,code,label,rows,chosen
+BODY_TYP,,72,"Unknown if single unit or combination unit Heavy Truck (GVWR greater than 26,000 lbs.)",1,True
+BODY_TYP,,72,"Unknown if single-unit or combination unit Heavy Truck (GVWR greater than 26,000 lbs.)",1,False
+CITY,4,428,SEDONA,1,True
+CITY,4,428,Sedona,1,False
+CITY,13,2190,STONECREST,7,True
+CITY,13,2190,FORSYTH,1,False
+CITY,36,4170,NEW YORK CITY,118,True
+CITY,36,4170,MIDDLE VILLAGE,42,False
+CITY,36,4170,NEW YORK,34,False
+CITY,42,3950,JEFFERSON,1,True
+CITY,42,3950,JEFFERSON HILLS,1,False
+MAK_MOD,,2001,Jeep / Kaiser-Jeep / Willys- Jeep Compass,237,True
+MAK_MOD,,2001,Jeep / Kaiser Jeep / Willys Jeep Compass,163,False
+MAK_MOD,,2401,Jeep / Kaiser-Jeep / Willys- Jeep CJ-2/CJ-3/CJ-4,2,True
+MAK_MOD,,2401,Jeep / Kaiser Jeep / Willys Jeep CJ-2/CJ-3/CJ-4,1,False
+MAK_MOD,,2402,Jeep / Kaiser-Jeep / Willys- Jeep CJ-5/CJ-6/CJ-7/CJ-8,4,True
+MAK_MOD,,2402,Jeep / Kaiser Jeep / Willys Jeep CJ-5/CJ-6/CJ-7/CJ-8,3,False
+MAK_MOD,,2403,Jeep / Kaiser-Jeep / Willys- Jeep YJ series/Wrangler,639,True
+MAK_MOD,,2403,Jeep / Kaiser Jeep / Willys Jeep YJ series/Wrangler,442,False
+MAK_MOD,,2404,Jeep / Kaiser-Jeep / Willys- Jeep Cherokee (1984-on) (For Grand Cherokee for 2014 on use 02-422.),681,True
+MAK_MOD,,2404,Jeep / Kaiser Jeep / Willys Jeep Cherokee (1984-on) (For Grand Cherokee for 2014 on use 02-422.),466,False
+MAK_MOD,,2405,Jeep / Kaiser-Jeep / Willys- Jeep Liberty,156,True
+MAK_MOD,,2405,Jeep / Kaiser Jeep / Willys Jeep Liberty,108,False
+MAK_MOD,,2406,Jeep / Kaiser-Jeep / Willys- Jeep Commander,25,True
+MAK_MOD,,2406,Jeep / Kaiser Jeep / Willys Jeep Commander,17,False
+MAK_MOD,,2407,Jeep / Kaiser-Jeep / Willys- Jeep Patriot,131,True
+MAK_MOD,,2407,Jeep / Kaiser Jeep / Willys Jeep Patriot,98,False
+MAK_MOD,,2408,Jeep / Kaiser-Jeep / Willys- Jeep Renegade,76,True
+MAK_MOD,,2408,Jeep / Kaiser Jeep / Willys Jeep Renegade,61,False
+MAK_MOD,,2422,Jeep / Kaiser-Jeep / Willys- Jeep Grand Cherokee (For 2014 on. Use model 404 for model years prior to 2013.),504,True
+MAK_MOD,,2422,Jeep / Kaiser Jeep / Willys Jeep Grand Cherokee (For 2014 on. Use model 404 for model years prior to 2013.),330,False
+MAK_MOD,,2431,Jeep / Kaiser-Jeep / Willys- Jeep Grand Wagoneer,13,True
+MAK_MOD,,2431,Jeep / Kaiser Jeep / Willys Jeep Grand Wagoneer,5,False
+MAK_MOD,,2483,Jeep / Kaiser-Jeep / Willys- Jeep Gladiator,75,True
+MAK_MOD,,2483,Jeep / Kaiser Jeep / Willys Jeep Gladiator,50,False
+MAK_MOD,,2498,Jeep / Kaiser-Jeep / Willys- Jeep Other (light truck),51,True
+MAK_MOD,,2498,Jeep / Kaiser Jeep / Willys Jeep Other (light truck),19,False
+MAK_MOD,,2499,Jeep / Kaiser Jeep / Willys Jeep Unknown (light truck),1,True
+MAK_MOD,,2499,Jeep / Kaiser-Jeep / Willys- Jeep Unknown (light truck),1,False
+MAK_MOD,,2999,Jeep / Kaiser-Jeep / Willys- Jeep Unknown (JEEP),5,True
+MAK_MOD,,2999,Jeep / Kaiser Jeep / Willys Jeep Unknown (JEEP),3,False
+MAK_MOD,,6054,Chrysler Pacifica (Passenger Cars),23,True
+MAK_MOD,,6054,Chrysler Pacifica,11,False
+MAK_MOD,,6443,Chrysler Pacifica (Light Trucks),228,True
+MAK_MOD,,6443,Chrysler Pacifica,95,False
+MAK_MOD,,9003,Plymouth Fury (Fury Gran thru `78),2,True
+MAK_MOD,,9003,Plymouth Fury (Fury Gran thru '78),1,False
+MAK_MOD,,13001,Lincoln Continental (thru `81)/ Town Car,102,True
+MAK_MOD,,13001,Lincoln Continental (thru '81)/ Town Car,64,False
+MAK_MOD,,13005,Lincoln Continental (`82 on),7,True
+MAK_MOD,,13005,Lincoln Continental ('82 on),5,False
+MAK_MOD,,19009,Cadillac Allante',1,True
+MAK_MOD,,19009,Cadillac Allante`,1,False
+MAK_MOD,,20008,Chevrolet Nova (-`79),2,True
+MAK_MOD,,20008,Chevrolet Nova (-'79),1,False
+MAK_MOD,,20010,Chevrolet Monte Carlo (thru `88),4,True
+MAK_MOD,,20010,Chevrolet Monte Carlo (thru '88),3,False
+MAK_MOD,,41035,Mazda 323/GLC/ Protege/ Protege 5,12,True
+MAK_MOD,,41035,Mazda 323/GLC/ Protégé/ Protégé5,10,False
+MAK_MOD,,74705,Moto Guzzi 450-749cc,1,True
+MAK_MOD,,74705,Moto-Guzzi 450-749cc,1,False
+MAK_MOD,,74706,Moto Guzzi 750cc or greater,1,True
+MAK_MOD,,74706,Moto-Guzzi 750cc or greater,1,False
+VPICMODEL,,11215,Screamin' Eagle Ultra Classic Electra Glide,3,True
+VPICMODEL,,11215,Screamin` Eagle Ultra Classic Electra Glide,3,False
