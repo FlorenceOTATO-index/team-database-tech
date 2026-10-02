@@ -1,0 +1,19 @@
+# Raw FARS data: too large for GitHub. Get it with: python scripts/download_data.py
+data/raw/*
+!data/raw/.gitkeep
+*.zip
+
+# Secrets: never commit your real database password
+.env
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
