@@ -334,7 +334,7 @@ check("C8 parkwork PTRLR3VIN/PTRLR3GVWR constant",
 
 # --------------------------------- Child tables: 3NF (strict)
 def _mism2(a, b):
-    return int((((a != b) & ~(a.isna() & b.isna())).sum())
+    return int((((a != b) & ~(a.isna() & b.isna())).sum()))
 
 def _vex(fname, key, vals, name):
     df = pd.read_csv(f"{DATA}/{fname}", usecols=key + vals, low_memory=False)
