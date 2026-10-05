@@ -12,7 +12,7 @@ mid-presentation ("row counts, sample queries"). Run after
 mysql -u root -p < sql/schema/01_create_core_tables.sql
 mysql -u root -p < sql/schema/02_create_child_tables.sql
 mysql -u root -p < sql/schema/03_create_lookups.sql
-mysql -u root -p < sql/load/*.sql        -- load scripts, in order
+for f in sql/load/*.sql; do mysql -u root -p < "$f"; done
 mysql -u root -p < sql/schema/04_constraints_indexes.sql
 ```
 
@@ -28,7 +28,7 @@ MySQL version: TODO (`SELECT VERSION();`)
 | drugs    | TODO          | TODO                  |        |
 | ...      |               |                       |        |
 
-Get CSV counts with `wc -l data/processed/<file>.csv` (minus 1 for the header).
+Get CSV counts with `wc -l data/processed/*.csv` (minus 1 for the header).
 
 ## Sample queries
 
