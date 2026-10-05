@@ -176,12 +176,50 @@ for fname in ["accident.csv", "vehicle.csv", "person.csv"]:
     check(f"{fname}: no *NAME label columns remain", leftover == [],
           f"leftover = {leftover}")
 
-# --------------------------------- 3NF: DAY_WEEK documented exception
-a3 = pd.read_csv(f"{DATA}/accident.csv",
+# --------------------------------- 3NF: lookup relations are 3NF-clean
+for fname, key in [("code_labels.csv", ["column", "code"]),
+                   ("county.csv", ["STATE", "COUNTY"]),
+                   ("city.csv", ["STATE", "CITY"])]:
+    df = pd.read_csv(f"{DATA}/lookups/{fname}", usecols=key)
+    check(f"{fname}: key {key} unique",
+          df.duplicated(subset=key).sum() == 0, f"{len(df)} rows")
+
+# --------------------------------- 3NF: transitive deps extracted (strict)
+# T1: (YEAR, MONTH, DAY) -> DAY_WEEK  =>  CALENDAR
+_a = pd.read_csv(f"{DATA}/accident.csv",
                  usecols=["YEAR", "MONTH", "DAY", "DAY_WEEK"])
-n = a3.groupby(["YEAR", "MONTH", "DAY"])["DAY_WEEK"].nunique().max()
-print(f"[INFO] DAY_WEEK distinct per (YEAR,MONTH,DAY) = {n} "
-      "-> transitive dep via non-key columns; kept deliberately.")
+_cal = _a.drop_duplicates(subset=["YEAR", "MONTH", "DAY"])
+check("T1 CALENDAR key (YEAR,MONTH,DAY) unique",
+      not _cal.duplicated(subset=["YEAR", "MONTH", "DAY"]).any(),
+      f"{len(_cal)} rows")
+_m = _a.merge(_cal, on=["YEAR", "MONTH", "DAY"], suffixes=("", "_c"))
+check("T1 CALENDAR extraction lossless",
+      int((_m["DAY_WEEK"] != _m["DAY_WEEK_c"]).sum()) == 0, "0 mismatches")
+
+# T2: VIN -> VIN_1..VIN_12  =>  VIN_DETAIL
+_vcols = ["VIN"] + [f"VIN_{i}" for i in range(1, 13)]
+_v = pd.read_csv(f"{DATA}/vehicle.csv", usecols=_vcols)
+_vd = _v.drop_duplicates(subset=["VIN"])
+check("T2 VIN_DETAIL key VIN unique",
+      not _vd.duplicated(subset=["VIN"]).any(), f"{len(_vd)} rows")
+_m2 = _v.merge(_vd, on="VIN", suffixes=("", "_d"))
+_t2_mism = 0
+for _i in range(1, 13):
+    _x, _y = _m2[f"VIN_{_i}"], _m2[f"VIN_{_i}_d"]
+    _t2_mism += int(((_x != _y) & ~(_x.isna() & _y.isna())).sum())
+check("T2 VIN_DETAIL extraction lossless (NaN-aware)", _t2_mism == 0,
+      f"{_t2_mism} mismatches; nulls preserved as-is")
+
+# T3: (DEATH_HR, DEATH_MN) -> DEATH_TM  =>  DEATH_TIME
+_p = pd.read_csv(f"{DATA}/person.csv",
+                 usecols=["DEATH_HR", "DEATH_MN", "DEATH_TM"])
+_dt = _p.drop_duplicates(subset=["DEATH_HR", "DEATH_MN"])
+check("T3 DEATH_TIME key (DEATH_HR,DEATH_MN) unique",
+      not _dt.duplicated(subset=["DEATH_HR", "DEATH_MN"]).any(),
+      f"{len(_dt)} rows")
+_m3 = _p.merge(_dt, on=["DEATH_HR", "DEATH_MN"], suffixes=("", "_d"))
+check("T3 DEATH_TIME extraction lossless",
+      int((_m3["DEATH_TM"] != _m3["DEATH_TM_d"]).sum()) == 0, "0 mismatches")
 
 print()
 print("ALL CHECKS PASSED" if all(results) else "SOME CHECKS FAILED")
