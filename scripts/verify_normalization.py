@@ -332,5 +332,55 @@ _pc = pd.read_csv(f"{DATA}/parkwork.csv", usecols=['PTRLR3VIN','PTRLR3GVWR'])
 check("C8 parkwork PTRLR3VIN/PTRLR3GVWR constant",
       all(_pc[c].nunique() == 1 for c in _pc.columns), "drop as constants")
 
+# --------------------------------- Child tables: 3NF (strict)
+def _mism2(a, b):
+    return int((((a != b) & ~(a.isna() & b.isna())).sum())
+
+def _vex(fname, key, vals, name):
+    df = pd.read_csv(f"{DATA}/{fname}", usecols=key + vals, low_memory=False)
+    new = df.drop_duplicates(subset=key)
+    nn = new.dropna(subset=key)
+    m = df.merge(new, on=key, suffixes=("", "_n"), how="left")
+    bad = sum(_mism2(m[c], m[c + "_n"]) for c in vals)
+    check(f"{name}: key unique",
+          not nn.duplicated(subset=key).any(), f"{len(new)} rows")
+    check(f"{name}: lossless", bad == 0, f"{bad} mismatches")
+
+_vex('acc_aux.csv', ['STATE'], ['A_REGION'], 'D3 STATE_REGION')
+_vex('acc_aux.csv', ['A_ROADFC'], ['A_INTER'], 'D4 ROADFC_INTER')
+_vex('acc_aux.csv', ['A_JUNC'], ['A_INTSEC'], 'D5 JUNC_INTSEC')
+_vex('per_aux.csv', ['A_AGE3'],
+     ['A_AGE1', 'A_AGE2', 'A_AGE4', 'A_AGE5', 'A_AGE9'], 'D6 AGE_BAND_MAP')
+_vex('pbtype.csv', ['PEDCTYPE'], ['PEDCGP'], 'D7 PED_CRASH_GROUP')
+_vex('pbtype.csv', ['BIKECTYPE'], ['BIKECGP'], 'D8 BIKE_CRASH_GROUP')
+
+# D2: PVIN -> PVIN_1..12 => PVIN_DETAIL
+_pwd = pd.read_csv(f"{DATA}/parkwork.csv",
+    usecols=['PVIN'] + [f'PVIN_{i}' for i in range(1, 13)], low_memory=False)
+_pdd = _pwd.drop_duplicates(subset=['PVIN'])
+_pdn = _pdd.dropna(subset=['PVIN'])
+_mpd = _pwd.merge(_pdd, on='PVIN', suffixes=('', '_n'), how='left')
+_pbad = sum(_mism2(_mpd[f'PVIN_{i}'], _mpd[f'PVIN_{i}_n']) for i in range(1, 13))
+check("D2 PVIN_DETAIL: key unique",
+      not _pdn.duplicated(subset=['PVIN']).any(), f"{len(_pdd)} rows")
+check("D2 PVIN_DETAIL: lossless", _pbad == 0, f"{_pbad} mismatches")
+
+# D1: 68 *ID -> *NAME pairs => VPIC_LABELS(attribute, id, label)
+_vvd = pd.read_csv(f"{DATA}/vpicdecode.csv", low_memory=False)
+_vpairs = [(c, c[:-2]) for c in _vvd.columns if c.endswith('ID') and c[:-2] in _vvd.columns]
+_vrows, _vbad = 0, 0
+for _idc, _nmc in _vpairs:
+    _mpv = _vvd[[_idc, _nmc]].dropna(subset=[_idc]).drop_duplicates(subset=[_idc])
+    _vrows += len(_mpv)
+    _mv = _vvd[[_idc, _nmc]].merge(_mpv, on=_idc, suffixes=('', '_m'), how='left')
+    _vbad += _mism2(_mv[_nmc], _mv[_nmc + '_m'])
+check("D1 VPIC_LABELS: 68 pairs extracted", len(_vpairs) == 68, f"{_vrows} rows")
+check("D1 VPIC_LABELS: lossless", _vbad == 0, f"{_vbad} mismatches")
+
+# TRACT is constant -> drop, documented (not a real FD)
+_txc = pd.read_csv(f"{DATA}/acc_aux.csv", usecols=['TRACT'], low_memory=False)
+check("acc_aux TRACT constant", _txc['TRACT'].nunique(dropna=True) == 1,
+      "drop as constant")
+
 print()
 print("ALL CHECKS PASSED" if all(results) else "SOME CHECKS FAILED")

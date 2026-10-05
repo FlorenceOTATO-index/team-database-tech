@@ -353,6 +353,44 @@ Empirical FD checks flag false positives; each flag was falsification-tested:
 eliminated, 49 columns removed, 2 new relations, both proven lossless.
 
 
+### Step 3 — Third normal form (child tables)
+
+**Transitive dependencies resolved (strict — 8 new relations):**
+
+| # | FD | New relation (key) | Rows | Proof |
+|---|---|---|---|---|
+| D1 | 68 × (*ID → *NAME) | VPIC_LABELS(attribute, id, label) | 3,170 | 0 violations; 0 mismatches |
+| D2 | PVIN → PVIN_1..12 | PVIN_DETAIL(PVIN) | 1,465 | key unique; 0 mismatches |
+| D3 | STATE → A_REGION | STATE_REGION(STATE) | 51 | key unique; 0 mismatches |
+| D4 | A_ROADFC → A_INTER | ROADFC_INTER(A_ROADFC) | 7 | key unique; 0 mismatches |
+| D5 | A_JUNC → A_INTSEC | JUNC_INTSEC(A_JUNC) | 4 | key unique; 0 mismatches |
+| D6 | A_AGE3 → 5 coarser schemes | AGE_BAND_MAP(A_AGE3) | 13 | key unique; 0 mismatches |
+| D7 | PEDCTYPE → PEDCGP | PED_CRASH_GROUP(PEDCTYPE) | 51 | key unique; 0 mismatches |
+| D8 | BIKECTYPE → BIKECGP | BIKE_CRASH_GROUP(BIKECTYPE) | 66 | key unique; 0 mismatches |
+
+Column moves: vpicdecode −68 NAMEs (194→126), parkwork −12 PVIN_i (51→39),
+acc_aux −4 (42→38: A_REGION, A_INTER, A_INTSEC, TRACT), per_aux −5 age
+schemes (23→18), pbtype −2 groups (22→20). TRACT dropped as a dataset
+constant (1 distinct value — the FIPS→TRACT "FD" was the constant trap).
+Null-key rows are excluded from the physical lookups.
+
+**Tested and kept — spurious transitive FDs:**
+
+- *Sparsity* (vpicdecode): 18 flagged columns have ≤287 non-nulls of 55,087
+  rows — FD holds vacuously. Kept at vehicle grain.
+- *Near-constant* (vpicdecode): ELECTRONICSTABILITYCONTROL = "Standard" in
+  13,289/13,290 populated rows; PRETENSIONER = "Yes" in 1,869/1,870.
+  Expected disagreements ≈ 0.23, observed 0 — chance, no semantic FD
+  (a crash cannot determine factory equipment). Kept.
+- *Single-row vacuity* (vpictrailerdecode): 1,581/1,610 single-trailer
+  vehicles; the 29 two-trailer pairs were falsification-tested (NOTE
+  disagreed in 5/29 — genuinely trailer-grain). Kept at trailer grain.
+
+**Result:** all 33 child tables in strict 3NF — 91 columns relocated into
+8 new relations, all proven lossless; 1 constant dropped.
+
+
+
 ## Deliberately denormalized (documented exceptions)
 
 - Coded columns are kept alongside lookup joins (rather than storing text in
