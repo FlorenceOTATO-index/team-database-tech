@@ -8,7 +8,7 @@ We're designing a **MySQL** database for the **NHTSA FARS 2024** dataset. FARS r
 | Name | Role / focus | GitHub |
 |---|---|---|
 | Ryan Williams | | |
-| | | |
+| Jue Wang | Normalization, Relational schema design | |
 | | | |
 | | | |
 
