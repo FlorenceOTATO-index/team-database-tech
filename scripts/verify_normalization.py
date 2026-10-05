@@ -221,5 +221,49 @@ _m3 = _p.merge(_dt, on=["DEATH_HR", "DEATH_MN"], suffixes=("", "_d"))
 check("T3 DEATH_TIME extraction lossless",
       int((_m3["DEATH_TM"] != _m3["DEATH_TM_d"]).sum()) == 0, "0 mismatches")
 
+# --------------------------------- Child tables: 1NF keys
+child_keys = {
+    "acc_aux.csv": ["ST_CASE"],
+    "cevent.csv": ["ST_CASE", "EVENTNUM"],
+    "crashrf.csv": ["ST_CASE", "CRASHRF"],
+    "miacc.csv": ["ST_CASE"],
+    "midrvacc.csv": ["ST_CASE"],
+    "weather.csv": ["ST_CASE", "WEATHER"],
+    "damage.csv": ["ST_CASE", "VEH_NO", "DAMAGE"],
+    "distract.csv": ["ST_CASE", "VEH_NO", "DRDISTRACT"],
+    "drimpair.csv": ["ST_CASE", "VEH_NO", "DRIMPAIR"],
+    "driverrf.csv": ["ST_CASE", "VEH_NO", "DRIVERRF"],
+    "factor.csv": ["ST_CASE", "VEH_NO", "VEHICLECC"],
+    "maneuver.csv": ["ST_CASE", "VEH_NO", "MANEUVER"],
+    "parkwork.csv": ["ST_CASE", "VEH_NO"],
+    "pvehiclesf.csv": ["ST_CASE", "VEH_NO", "PVEHICLESF"],
+    "vehiclesf.csv": ["ST_CASE", "VEH_NO", "VEHICLESF"],
+    "vevent.csv": ["ST_CASE", "VEH_NO", "VEVENTNUM"],
+    "violatn.csv": ["ST_CASE", "VEH_NO", "VIOLATION"],
+    "vision.csv": ["ST_CASE", "VEH_NO", "VISION"],
+    "vpicdecode.csv": ["ST_CASE", "VEH_NO"],
+    "vpictrailerdecode.csv": ["ST_CASE", "VEH_NO", "TRAILER_NO"],
+    "vsoe.csv": ["ST_CASE", "VEH_NO", "VEVENTNUM", "SOE"],
+    "veh_aux.csv": ["ST_CASE", "VEH_NO"],
+    "miper.csv": ["ST_CASE", "VEH_NO", "PER_NO"],
+    "nmcrash.csv": ["ST_CASE", "VEH_NO", "PER_NO", "NMCC"],
+    "nmdistract.csv": ["ST_CASE", "VEH_NO", "PER_NO"],
+    "nmimpair.csv": ["ST_CASE", "VEH_NO", "PER_NO", "NMIMPAIR"],
+    "nmprior.csv": ["ST_CASE", "VEH_NO", "PER_NO", "NMACTION"],
+    "pbtype.csv": ["ST_CASE", "VEH_NO", "PER_NO"],
+    "per_aux.csv": ["ST_CASE", "VEH_NO", "PER_NO"],
+    "personrf.csv": ["ST_CASE", "VEH_NO", "PER_NO", "PERSONRF"],
+    "race.csv": ["ST_CASE", "VEH_NO", "PER_NO", "RACE_ORDER"],
+    "safetyeq.csv": ["ST_CASE", "VEH_NO", "PER_NO"],
+}
+for fname, key in child_keys.items():
+    df = pd.read_csv(f"{DATA}/{fname}", usecols=key)
+    check(f"{fname}: key {key} unique",
+          not df.duplicated(subset=key).any(), f"{len(df)} rows")
+
+_d = pd.read_csv(f"{DATA}/drugs.csv")
+check("drugs: 748 exact-duplicate rows (surrogate key needed)",
+      int(_d.duplicated().sum()) == 748, f"{len(_d)} rows")
+
 print()
 print("ALL CHECKS PASSED" if all(results) else "SOME CHECKS FAILED")
