@@ -265,5 +265,72 @@ _d = pd.read_csv(f"{DATA}/drugs.csv")
 check("drugs: 748 exact-duplicate rows (surrogate key needed)",
       int(_d.duplicated().sum()) == 748, f"{len(_d)} rows")
 
+# --------------------------------- Child tables: 2NF
+# C1: ST_CASE -> STATE in 30 child tables (drop STATE; kept in ACCIDENT)
+_c1_files = ['acc_aux.csv','cevent.csv','crashrf.csv','weather.csv','damage.csv',
+ 'distract.csv','drimpair.csv','driverrf.csv','factor.csv','maneuver.csv','parkwork.csv',
+ 'pvehiclesf.csv','vehiclesf.csv','vevent.csv','violatn.csv','vision.csv','vpicdecode.csv',
+ 'vpictrailerdecode.csv','vsoe.csv','veh_aux.csv','drugs.csv','nmcrash.csv','nmdistract.csv',
+ 'nmimpair.csv','nmprior.csv','pbtype.csv','per_aux.csv','personrf.csv','race.csv','safetyeq.csv']
+for _f in _c1_files:
+    _df = pd.read_csv(f"{DATA}/{_f}", usecols=['ST_CASE','STATE'])
+    check(f"C1 {_f}: ST_CASE -> STATE",
+          _df.groupby('ST_CASE')['STATE'].nunique().max() == 1, "drop STATE from child")
+
+# C2/C3: aux tables (YEAR constant 2024; STATE crash-grain)
+_vx = pd.read_csv(f"{DATA}/veh_aux.csv", usecols=['ST_CASE','YEAR','STATE'])
+check("C2 veh_aux: YEAR constant", _vx['YEAR'].nunique() == 1, "drop as constant")
+check("C2 veh_aux: ST_CASE -> STATE",
+      _vx.groupby('ST_CASE')['STATE'].nunique().max() == 1, "drop STATE")
+_px = pd.read_csv(f"{DATA}/per_aux.csv", usecols=['ST_CASE','YEAR','STATE'])
+check("C3 per_aux: YEAR constant", _px['YEAR'].nunique() == 1, "drop as constant")
+check("C3 per_aux: ST_CASE -> STATE",
+      _px.groupby('ST_CASE')['STATE'].nunique().max() == 1, "drop STATE")
+
+# C4: parkwork P* crash-cols are exact copies of accident cols
+_pw = pd.read_csv(f"{DATA}/parkwork.csv",
+    usecols=['ST_CASE','PVE_FORMS','PMONTH','PDAY','PHOUR','PMINUTE','PHARM_EV','PMAN_COLL'])
+_ac = pd.read_csv(f"{DATA}/accident.csv",
+    usecols=['ST_CASE','VE_FORMS','MONTH','DAY','HOUR','MINUTE','HARM_EV','MAN_COLL'])
+_mm = _pw.merge(_ac, on='ST_CASE', how='left')
+_c4_pairs = [('PVE_FORMS','VE_FORMS'),('PMONTH','MONTH'),('PDAY','DAY'),('PHOUR','HOUR'),
+             ('PMINUTE','MINUTE'),('PHARM_EV','HARM_EV'),('PMAN_COLL','MAN_COLL')]
+_c4_bad = 0
+for _p, _a in _c4_pairs:
+    _c4_bad += int(((_mm[_p] != _mm[_a]) & ~(_mm[_p].isna() & _mm[_a].isna())).sum())
+check("C4 parkwork P* == accident cols", _c4_bad == 0, f"{_c4_bad} mismatches")
+
+# C5: ST_CASE -> PHAZ_* => new PARKWORK_HAZMAT
+_ph = pd.read_csv(f"{DATA}/parkwork.csv",
+    usecols=['ST_CASE','PHAZ_INV','PHAZPLAC','PHAZ_ID','PHAZ_CNO','PHAZ_REL'])
+_phd = _ph.drop_duplicates(subset=['ST_CASE'])
+check("C5 PARKWORK_HAZMAT key unique",
+      not _phd.duplicated(subset=['ST_CASE']).any(), f"{len(_phd)} rows")
+_m5 = _ph.merge(_phd, on='ST_CASE', suffixes=('','_h'))
+_c5_bad = sum(int(((_m5[c] != _m5[c+'_h']) & ~(_m5[c].isna() & _m5[c+'_h'].isna())).sum())
+               for c in ['PHAZ_INV','PHAZPLAC','PHAZ_ID','PHAZ_CNO','PHAZ_REL'])
+check("C5 PARKWORK_HAZMAT lossless", _c5_bad == 0, f"{_c5_bad} mismatches")
+
+# C6: acc_aux FATALS/YEAR/STATE are exact copies of accident
+_ax = pd.read_csv(f"{DATA}/acc_aux.csv", usecols=['ST_CASE','FATALS','YEAR','STATE'])
+_acc = pd.read_csv(f"{DATA}/accident.csv", usecols=['ST_CASE','FATALS','YEAR','STATE'])
+_m6 = _ax.merge(_acc, on='ST_CASE', suffixes=('','_a'))
+_c6_bad = sum(int((_m6[c] != _m6[c+'_a']).sum()) for c in ['FATALS','YEAR','STATE'])
+check("C6 acc_aux FATALS/YEAR/STATE == accident", _c6_bad == 0, f"{_c6_bad} mismatches")
+
+# C7: ST_CASE -> PBSZONE => new CRASH_PBSZONE
+_pb = pd.read_csv(f"{DATA}/pbtype.csv", usecols=['ST_CASE','PBSZONE'])
+_cz = _pb.drop_duplicates(subset=['ST_CASE'])
+check("C7 CRASH_PBSZONE key unique",
+      not _cz.duplicated(subset=['ST_CASE']).any(), f"{len(_cz)} rows")
+_m7 = _pb.merge(_cz, on='ST_CASE', suffixes=('','_c'))
+check("C7 CRASH_PBSZONE lossless",
+      int((_m7['PBSZONE'] != _m7['PBSZONE_c']).sum()) == 0, "0 mismatches")
+
+# C8: parkwork trailer constants
+_pc = pd.read_csv(f"{DATA}/parkwork.csv", usecols=['PTRLR3VIN','PTRLR3GVWR'])
+check("C8 parkwork PTRLR3VIN/PTRLR3GVWR constant",
+      all(_pc[c].nunique() == 1 for c in _pc.columns), "drop as constants")
+
 print()
 print("ALL CHECKS PASSED" if all(results) else "SOME CHECKS FAILED")

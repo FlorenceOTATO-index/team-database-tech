@@ -310,6 +310,49 @@ have 2 rows → grain is one-row-per-distraction, not per vehicle).
   (vehicle, from core checks).
 
 
+
+### Step 2 — Second normal form (child tables)
+
+**Partial dependencies resolved:**
+
+| # | Where | Partial FD | Resolution | Lossless proof |
+|---|---|---|---|---|
+| C1 | 30 child tables | ST_CASE → STATE | Dropped from all 30; STATE lives in ACCIDENT | FD verified per file; 1,715,857 cells removed |
+| C2 | veh_aux | ST_CASE → YEAR, STATE | Dropped (YEAR = 2024 constant, documented; STATE in ACCIDENT) | FD verified |
+| C3 | per_aux | ST_CASE → YEAR, STATE | Dropped (same as C2) | FD verified |
+| C4 | parkwork | ST_CASE → PVE_FORMS, PMONTH, PDAY, PHOUR, PMINUTE, PHARM_EV, PMAN_COLL | Dropped; exact copies of accident columns | 0 mismatches / 1,526 rows |
+| C5 | parkwork | ST_CASE → PHAZ_INV, PHAZPLAC, PHAZ_ID, PHAZ_CNO, PHAZ_REL | New PARKWORK_HAZMAT (1,070 rows, PK ST_CASE) | key unique; 0 mismatches |
+| C6 | acc_aux | ST_CASE → FATALS, YEAR, STATE | Dropped; exact copies of accident | 0 / 36,297 mismatches |
+| C7 | pbtype | ST_CASE → PBSZONE | New CRASH_PBSZONE (8,419 rows, PK ST_CASE) | key unique; 0 mismatches |
+| C8 | parkwork | ∅ → PTRLR3VIN, PTRLR3GVWR | Dropped as dataset constants | constant across 1,526 rows |
+
+Column counts after 2NF: acc_aux 45→42, veh_aux 20→18, per_aux 25→23,
+parkwork 66→51, pbtype 24→22, drugs 10→10 (−STATE, +drug_id surrogate);
+every other child table −1 (STATE). New relations: PARKWORK_HAZMAT
+(6 cols), CRASH_PBSZONE (2 cols). 49 columns removed in total.
+
+**Tested and kept — spurious FDs (no decomposition):**
+
+Empirical FD checks flag false positives; each flag was falsification-tested:
+
+- *Sparsity trap* (`vpicdecode`): 18 flagged columns have ≤287 non-nulls of
+  55,087 rows (one has a single non-null). `nunique` ignores nulls, so the FD
+  holds vacuously. Kept at vehicle grain.
+- *Near-constant trap* (`vpicdecode`): ELECTRONICSTABILITYCONTROL is
+  "Standard" in 13,289/13,290 populated rows; PRETENSIONER is "Yes" in
+  1,869/1,870. The 1,537 unanimously-agreeing crashes are expected by chance
+  (expected disagreements ≈ 0.23, observed 0) — and no semantic FD exists
+  (a crash cannot determine factory equipment). Kept.
+- *Single-row vacuity* (`vpictrailerdecode`): 1,581/1,610 vehicles tow one
+  trailer, so every column trivially satisfies the via-key check. The 29
+  two-trailer pairs were tested: NOTE disagreed in 5/29 (genuinely
+  trailer-grain); the rest agreed 29/29 — insufficient to establish an FD
+  with no semantic basis. Kept at trailer grain.
+
+**Result:** all child relations in 2NF — 1,715,857 redundant STATE cells
+eliminated, 49 columns removed, 2 new relations, both proven lossless.
+
+
 ## Deliberately denormalized (documented exceptions)
 
 - Coded columns are kept alongside lookup joins (rather than storing text in
