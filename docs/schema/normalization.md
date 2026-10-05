@@ -141,31 +141,66 @@ design is.)
 
 ## Step 4 — Third normal form (3NF)
 
-Check: no transitive dependencies (non-key attribute depending on another
-non-key attribute).
+Check: no transitive dependencies — no non-key attribute determined via
+another non-key attribute. Applied to the decomposed design (the flat
+vehicle/person fail 2NF, hence 3NF, by inheritance — Step 3).
 
-The major transitive dependencies were already removed by the ETL cleaning
-step, which moved every `*NAME` text column out of the fact tables.
-`data/processed/manifest.json` documents exactly what was dropped per file:
+### Transitive dependencies eliminated by the ETL
 
-- `accident.csv`: 80 → 46 columns; 34 label columns dropped, including
-  `STATENAME`, `COUNTYNAME`, `CITYNAME`, `HARM_EVNAME`, `WEATHERNAME`, ...
-- `vehicle.csv`: 201 → 109 columns; ~92 label columns dropped
-  (`HARM_EVNAME`, `MAKENAME`, `BODY_TYPNAME`, ...)
-- `person.csv`: 126 → 66 columns; ~60 label columns dropped
-  (`SEXNAME`, `PER_TYPNAME`, `INJ_SEVNAME`, ...)
-- `race.csv`: `ORDER` → `RACE_ORDER` (`ORDER` is a MySQL reserved word)
+The raw FARS files carried label columns transitively dependent on their
+codes (`HARM_EV → HARM_EVNAME`, `STATE → STATENAME`,
+`(STATE, COUNTY) → COUNTYNAME`, …). The ETL extracted them to
+`data/processed/lookups/` — accident 80 → 46 columns, vehicle 201 → 109,
+person 126 → 66 (per `data/processed/manifest.json`). Verified: 0 `*NAME`
+columns remain in any core file, and each lookup key is unique
+(code_labels 8,892 rows; county 2,827; city 5,507) — the extracted
+relations are themselves 3NF-clean.
 
-So `STATENAME` (which depended on `STATE`), `HARM_EVNAME` (on `HARM_EV`),
-`COUNTYNAME` (on `(STATE, COUNTY)`) etc. now live in
-`data/processed/lookups/` (`code_labels.csv`, `county.csv`, `city.csv`).
-(Reference: `data/processed/README.md`, "what changed".)
+### Transitive dependencies extracted (strict 3NF)
 
-Remaining work: scan the filled-in column lists for any leftover derived or
-label columns (e.g. a text column that repeats a code's meaning, or a computed
-flag derivable from other columns). For each, decide: extract to a lookup, or
-keep deliberately and justify (e.g. kept for query convenience, with the
-redundancy acknowledged).
+| # | FD | New relation | Key | Rows | Lossless proof |
+|---|---|---|---|---|---|
+| T1 | (YEAR, MONTH, DAY) → DAY_WEEK | CALENDAR | (YEAR, MONTH, DAY) | 366 | 0 mismatches |
+| T2 | VIN → VIN_1 … VIN_12 | VIN_DETAIL | VIN | 49,396 | 0 mismatches (NaN-aware; 98 short VINs keep nulls as-is) |
+| T3 | (DEATH_HR, DEATH_MN) → DEATH_TM | DEATH_TIME | (DEATH_HR, DEATH_MN) | 1,457 | 0 mismatches |
+
+Each new table holds one row per key; re-joining reproduces every original
+value exactly — no information lost. The new tables are 3NF-clean:
+VIN_DETAIL has a single-column key; CALENDAR and DEATH_TIME each carry a
+single non-key attribute, so no transitive chain can exist inside them.
+
+### Final core relations (strict 3NF)
+
+| Relation | Columns | PK | FKs |
+|---|---|---|---|
+| ACCIDENT | 45 (dropped DAY_WEEK) | ST_CASE | (YEAR, MONTH, DAY) → CALENDAR |
+| CALENDAR | 4 | (YEAR, MONTH, DAY) | — |
+| VEHICLE | 89 (dropped VIN_1..VIN_12) | (ST_CASE, VEH_NO) | ST_CASE → ACCIDENT; VIN → VIN_DETAIL |
+| VIN_DETAIL | 13 | VIN | — |
+| PERSON | 37 (dropped DEATH_TM) | (ST_CASE, VEH_NO, PER_NO) | ST_CASE → ACCIDENT; (DEATH_HR, DEATH_MN) → DEATH_TIME |
+| DEATH_TIME | 3 | (DEATH_HR, DEATH_MN) | — |
+
+Derived facts are recovered by join, e.g.
+`accident ⋈ calendar ON (year, month, day)` and
+`vehicle ⋈ vin_detail USING (vin)`. The FKs into CALENDAR/DEATH_TIME
+reference non-PK columns — legal: an FK needs a unique target, not
+necessarily a PK.
+
+### FD catalog (final)
+
+- FD1: ST_CASE → 44 crash attributes
+- FD2: (ST_CASE, VEH_NO) → 87 vehicle attributes
+- FD3: (ST_CASE, VEH_NO, PER_NO) → 34 person attributes
+- FD4: (YEAR, MONTH, DAY) → DAY_WEEK
+- FD5: VIN → VIN_1 … VIN_12
+- FD6: (DEATH_HR, DEATH_MN) → DEATH_TM
+
+### Result
+
+Core design is in strict 3NF: no partial dependencies (Step 3), no
+transitive dependencies. Full evidence:
+`python scripts/verify_normalization.py` → ALL CHECKS PASSED.
+
 
 ## Step 5 — Final relations
 
