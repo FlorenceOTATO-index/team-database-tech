@@ -377,10 +377,48 @@ for _idc, _nmc in _vpairs:
 check("D1 VPIC_LABELS: 68 pairs extracted", len(_vpairs) == 68, f"{_vrows} rows")
 check("D1 VPIC_LABELS: lossless", _vbad == 0, f"{_vbad} mismatches")
 
-# TRACT is constant -> drop, documented (not a real FD)
-_txc = pd.read_csv(f"{DATA}/acc_aux.csv", usecols=['TRACT'], low_memory=False)
-check("acc_aux TRACT constant", _txc['TRACT'].nunique(dropna=True) == 1,
-      "drop as constant")
+# TRACT is binary (0/1); ST_CASE -> TRACT holds -> keep in acc_aux (not constant)
+_txc = pd.read_csv(f"{DATA}/acc_aux.csv", usecols=['ST_CASE', 'TRACT'], low_memory=False)
+check("acc_aux ST_CASE -> TRACT (binary 0/1, kept)",
+      _txc.groupby('ST_CASE')['TRACT'].nunique(dropna=False).max() == 1,
+      f"values={sorted(_txc['TRACT'].dropna().unique().tolist())}")
+
+# D5: crash_unit supertype — vehicle/parkwork disjoint, mixed children FK to union
+_vehk = set(map(tuple, pd.read_csv(f"{DATA}/vehicle.csv", usecols=['ST_CASE','VEH_NO'], low_memory=False).values))
+_park = set(map(tuple, pd.read_csv(f"{DATA}/parkwork.csv", usecols=['ST_CASE','VEH_NO'], low_memory=False).values))
+check("D5 crash_unit: vehicle/parkwork disjoint", len(_vehk & _park) == 0,
+      f"vehicle={len(_vehk)}, parkwork={len(_park)}, union={len(_vehk | _park)}")
+for _ch in ['vevent', 'vsoe', 'vpicdecode', 'vpictrailerdecode']:
+    _ck = set(map(tuple, pd.read_csv(f"{DATA}/{_ch}.csv", usecols=['ST_CASE','VEH_NO'], low_memory=False).values))
+    _orph = _ck - (_vehk | _park)
+    check(f"D5 crash_unit: {_ch} FK to union (0 orphans)", len(_orph) == 0, f"{len(_orph)} orphans")
+
+# D6: vevent 5 cols duplicate cevent (0 mismatches) -> removed from vevent
+_ve = pd.read_csv(f"{DATA}/vevent.csv", usecols=['ST_CASE','EVENTNUM','VNUMBER1','AOI1','SOE','VNUMBER2','AOI2'], low_memory=False)
+_ce = pd.read_csv(f"{DATA}/cevent.csv", usecols=['ST_CASE','EVENTNUM','VNUMBER1','AOI1','SOE','VNUMBER2','AOI2'], low_memory=False)
+_vm = _ve.merge(_ce, on=['ST_CASE','EVENTNUM'], suffixes=('_v','_c'))
+_vbad = sum(_mism2(_vm[f"{c}_v"], _vm[f"{c}_c"]) for c in ['VNUMBER1','AOI1','SOE','VNUMBER2','AOI2'])
+check("D6 vevent: 5 cols duplicate cevent (0 mismatches)", _vbad == 0, f"{_vbad} mismatches")
+
+# D7: vsoe (ST_CASE, VEH_NO, VEVENTNUM) already unique -> SOE out of PK
+_vsoe = pd.read_csv(f"{DATA}/vsoe.csv", usecols=['ST_CASE','VEH_NO','VEVENTNUM'], low_memory=False)
+check("D7 vsoe: 3-col PK unique", not _vsoe.duplicated(subset=['ST_CASE','VEH_NO','VEVENTNUM']).any(),
+      f"{len(_vsoe)} rows")
+
+# D8: MULTRACE constant per person -> moved to person (2NF)
+_race = pd.read_csv(f"{DATA}/race.csv", usecols=['ST_CASE','VEH_NO','PER_NO','MULTRACE'], low_memory=False)
+check("D8 race: MULTRACE constant per person",
+      _race.groupby(['ST_CASE','VEH_NO','PER_NO'])['MULTRACE'].nunique(dropna=False).max() == 1,
+      "partial dependency -> person")
+
+# D9: 16 unit-grain cols FD on unit key (in vehicle.csv; person.csv has them for parkwork units)
+_c16 = ['BODY_TYP','EMER_USE','FIRE_EXP','GVWR_FROM','GVWR_TO','ICFINALBODY','IMPACT1','MAKE','MAK_MOD','MOD_YEAR','ROLLOVER','SPEC_USE','TOW_VEH','VPICBODYCLASS','VPICMAKE','VPICMODEL']
+_vc = pd.read_csv(f"{DATA}/vehicle.csv", nrows=0, low_memory=False).columns.tolist()
+_pc = pd.read_csv(f"{DATA}/person.csv", nrows=0, low_memory=False).columns.tolist()
+check("D9 crash_unit: 16 cols in vehicle.csv", all(c in _vc for c in _c16),
+      f"missing={[c for c in _c16 if c not in _vc]}")
+check("D9 crash_unit: 16 cols in person.csv", all(c in _pc for c in _c16),
+      f"missing={[c for c in _c16 if c not in _pc]}")
 
 print()
 print("ALL CHECKS PASSED" if all(results) else "SOME CHECKS FAILED")

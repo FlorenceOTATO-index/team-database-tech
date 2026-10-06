@@ -25,7 +25,7 @@ ACCIDENT  [PK ST_CASE — 36,297 crashes]
 ├── JUNC_INTSEC  [PK A_JUNC — 4; 2 cols]  NEW
 ├── VEHICLE  [PK (ST_CASE, VEH_NO) — 56,011; 109 → 89 cols]
 │   ├── VIN_DETAIL  [PK VIN — 49,396; 13 cols]  NEW
-│   ├── vehicle-grain children  [FK (ST_CASE, VEH_NO) → VEHICLE]
+│   ├── vehicle-grain children  [FK (ST_CASE, VEH_NO) → VEHICLE; vevent/vpicdecode/vpictrailerdecode → CRASH_UNIT (D5)]
 │   │   ├── damage  [PK (ST_CASE, VEH_NO, DAMAGE) — 240,091; 4 → 3 cols]
 │   │   ├── distract  [PK (ST_CASE, VEH_NO, DRDISTRACT) — 56,026; 4 → 3]
 │   │   ├── drimpair  [PK (ST_CASE, VEH_NO, DRIMPAIR) — 56,181; 4 → 3]
@@ -37,11 +37,11 @@ ACCIDENT  [PK ST_CASE — 36,297 crashes]
 │   │   ├── violatn  [PK (ST_CASE, VEH_NO, VIOLATION) — 59,670; 4 → 3]
 │   │   ├── vision  [PK (ST_CASE, VEH_NO, VISION) — 56,049; 4 → 3]
 │   │   ├── veh_aux  [PK (ST_CASE, VEH_NO) — 56,011; 20 → 18 cols]
-│   │   ├── vevent  [PK (ST_CASE, VEH_NO, VEVENTNUM) — 120,270; 10 → 9]
+│   │   ├── vevent  [PK (ST_CASE, VEH_NO, VEVENTNUM) — 120,270; 10 → 9; FK → CRASH_UNIT (D5)]
 │   │   │   └── vsoe  [PK (ST_CASE, VEH_NO, VEVENTNUM, SOE) — 120,270; 6 → 5]
-│   │   ├── vpicdecode  [PK (ST_CASE, VEH_NO) — 55,087; 195 → 126 cols]
+│   │   ├── vpicdecode  [PK (ST_CASE, VEH_NO) — 55,087; 195 → 126 cols; FK → CRASH_UNIT (D5)]
 │   │   │   └── VPIC_LABELS  [PK (attribute, id) — 3,170; 3 cols]  NEW
-│   │   └── vpictrailerdecode  [PK (ST_CASE, VEH_NO, TRAILER_NO) — 1,639; 39 → 38]
+│   │   └── vpictrailerdecode  [PK (ST_CASE, VEH_NO, TRAILER_NO) — 1,639; 39 → 38; FK → CRASH_UNIT (D5)]
 │   └── PERSON  [PK (ST_CASE, VEH_NO, PER_NO) — 88,326; 66 → 37 cols]
 │       ├── DEATH_TIME  [PK (DEATH_HR, DEATH_MN) — 1,457; 3 cols]  NEW
 │       └── person-grain children  [FK (ST_CASE, VEH_NO, PER_NO) → PERSON]
@@ -62,9 +62,12 @@ ACCIDENT  [PK ST_CASE — 36,297 crashes]
 ├── parkwork  [PK (ST_CASE, VEH_NO) — 1,526; 66 → 39 cols; separately
 │   numbered — NO FK to VEHICLE]
 │   └── PVIN_DETAIL  [PK PVIN — 1,465; 13 cols]  NEW
-└── ETL lookups: code_labels [PK (column, code) — 8,892]
-                 county      [PK (STATE, COUNTY) — 2,827]
-                 city        [PK (STATE, CITY) — 5,507]
+├── ETL lookups: code_labels [PK (column, code) — 8,892]
+│                 county      [PK (STATE, COUNTY) — 2,827]
+│                 city        [PK (STATE, CITY) — 5,507]
+└── CRASH_UNIT  [PK (ST_CASE, VEH_NO) — 57,537; 3 cols]  NEW (D5)
+    supertype = VEHICLE ∪ parkwork key sets (disjoint, verified);
+    FK target for vevent, vpicdecode, vpictrailerdecode (mixed units)
 ```
 
 ## Original column lists (source CSV headers)
@@ -81,7 +84,7 @@ A_DROWSY,A_WRONGWAY,BIA,SPJ_INDIAN,INDIAN_RES,CENSUS_2020_TRACT_FIPS,TRACT
 ```
 Removed by normalization: STATE, YEAR, FATALS (2NF — exact copies of
 accident); A_REGION, A_INTER, A_INTSEC (3NF → STATE_REGION, ROADFC_INTER,
-JUNC_INTSEC); TRACT (3NF — dataset constant).
+JUNC_INTSEC); TRACT kept (binary 0/1; ST_CASE → TRACT — corrected 2026-10-05).
 
 #### cevent.csv — 99,225 rows × 8 cols — final key: (ST_CASE, EVENTNUM)
 ```

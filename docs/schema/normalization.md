@@ -369,9 +369,11 @@ eliminated, 49 columns removed, 2 new relations, both proven lossless.
 | D8 | BIKECTYPE → BIKECGP | BIKE_CRASH_GROUP(BIKECTYPE) | 66 | key unique; 0 mismatches |
 
 Column moves: vpicdecode −68 NAMEs (194→126), parkwork −12 PVIN_i (51→39),
-acc_aux −4 (42→38: A_REGION, A_INTER, A_INTSEC, TRACT), per_aux −5 age
-schemes (23→18), pbtype −2 groups (22→20). TRACT dropped as a dataset
-constant (1 distinct value — the FIPS→TRACT "FD" was the constant trap).
+acc_aux −3 (42→39: A_REGION, A_INTER, A_INTSEC), per_aux −5 age
+schemes (23→18), pbtype −2 groups (22→20). TRACT kept, not dropped: binary (0/1); ST_CASE → TRACT holds
+(36,116 ones, 181 zeros — verified 2026-10-05). The "dataset constant"
+premise was refuted by the data; TRACT stays in acc_aux as an ordinary
+crash-grain attribute.
 Null-key rows are excluded from the physical lookups.
 
 **Tested and kept — spurious transitive FDs:**
@@ -390,6 +392,62 @@ Null-key rows are excluded from the physical lookups.
 8 new relations, all proven lossless; 1 constant dropped.
 
 
+
+### Step 4 — Mixed-grain children: `crash_unit` supertype (D5)
+
+Post-verification finding (2026-10-05, from colleague review): `vevent`,
+`vsoe`, `vpicdecode` and `vpictrailerdecode` contain units from **both**
+`vehicle` (56,011 in-transport) and `parkwork` (1,526 parked/working).
+Numbering is separate (0 overlap — D3 still holds), but parked/working
+units still receive event rows and VIN decodes. Measured on 2024 data:
+
+| child | units in `vehicle` | units in `parkwork` | orphans |
+|---|---|---|---|
+| vevent | 56,011 | 1,526 | 0 |
+| vsoe | 56,011 | 1,526 | 0 |
+| vpicdecode | 53,633 | 1,454 | 0 |
+| vpictrailerdecode | 1,531 | 79 | 0 |
+
+FKs from these tables to `vehicle` would fail — 4,585 unit references with
+no parent (the D1 failure mode). Ten other vehicle-grain children are
+vehicle-only (0 parkwork units, 0 orphans).
+
+Resolution: new supertype `crash_unit(ST_CASE, VEH_NO, unit_type)` holding
+the disjoint union of the two key sets (57,537 rows). `vehicle` and
+`parkwork` are subtypes (FK → `crash_unit`); `vevent`, `vpicdecode` and
+`vpictrailerdecode` FK to `crash_unit` (`vsoe` follows via `vevent`). Unlike
+D1, every row satisfies the supertype FK (0 orphans), so enforcement is
+safe. Permanent regression check in `scripts/verify_normalization.py`
+(D5 block).
+
+### Step 5 — Post-verification corrections (D6–D9)
+
+Colleague review (2026-10-05) identified four further issues.
+
+**D6 — `vevent` deduplicated against `cevent`.** `vevent` carried five
+columns (`VNUMBER1`, `AOI1`, `SOE`, `VNUMBER2`, `AOI2`) duplicating `cevent`
+for the same `(ST_CASE, EVENTNUM)`. Dropped from `vevent`; kept
+`FK (ST_CASE, EVENTNUM)` → `cevent`. `vevent` is now a pure (unit, event)
+link: 9 → 4 columns.
+
+**D7 — `vsoe` PK minimality.** `(ST_CASE, VEH_NO, VEVENTNUM)` is already
+unique in `vsoe` (120,270 rows), so `SOE` need not be in the PK. PK shrunk
+to 3 columns; `SOE` remains as a regular attribute.
+
+**D8 — `MULTRACE` moved to `person` (2NF).** `MULTRACE` is constant per
+`(ST_CASE, VEH_NO, PER_NO)` in `race` — a partial dependency on a
+4-column key. Moved to `person`, where the full key determines it.
+
+**D9 — Unit-grain columns to `crash_unit` (lossless `person`).** The 16
+columns moved from `person` to `vehicle` in Step 3 (`BODY_TYP`, `EMER_USE`,
+`FIRE_EXP`, `GVWR_FROM`, `GVWR_TO`, `ICFINALBODY`, `IMPACT1`, `MAKE`,
+`MAK_MOD`, `MOD_YEAR`, `ROLLOVER`, `SPEC_USE`, `TOW_VEH`, `VPICBODYCLASS`,
+`VPICMAKE`, `VPICMODEL`) are unit-grain, not vehicle-grain: 426 `person`
+rows belong to `parkwork` units, whose values (e.g. `ROLLOVER`) exist only
+in `person` and are unrecoverable via `vehicle`. They now live on
+`crash_unit` — populated from `vehicle.csv` for in-transport units,
+from `person` (deduped by unit) for parked/working units. `vehicle` sheds
+them (89 → 73 cols). Decomposition now lossless for all 88,326 persons.
 
 ## Deliberately denormalized (documented exceptions)
 
