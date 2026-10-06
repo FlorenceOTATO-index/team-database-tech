@@ -163,10 +163,13 @@ NON_MOTORIST subtype — I checked each: zero rows fall outside it.
 **Weak entities are also genuine**, not decoration: `VEH_NO` and `PER_NO` restart inside
 every crash, so neither identifies anything on its own.
 
-**What I deliberately did not do.** `PARKED_WORK_VEH` is *not* modelled as a sibling
-subtype of `VEHICLE` under a generalized "vehicle in crash" supertype. That would look
-more advanced but would be wrong: the two use independent numbering sequences, so a
-shared supertype key would collide. They are separate weak entities on ACCIDENT.
+**A generalization I initially rejected, wrongly.** I first argued `PARKED_WORK_VEH`
+should not be a sibling subtype of `VEHICLE` under a shared supertype, on the grounds
+that their independent numbering would collide. Checking the data disproves that: the
+`(ST_CASE, VEH_NO)` key sets are disjoint — 56,011 + 1,526 = 57,537, zero overlap — so
+the `crash_unit` supertype in the final schema is sound. The `VEH_NO` *ranges* overlap
+(1–15 vs 1–10), which is what misled me; the *pairs* never do.
+
 
 **What would justify more EER.** A second specialization of `PERSON` into DRIVER vs
 PASSENGER is tempting (`PER_TYP` encodes it), but it adds nothing unless we attach
