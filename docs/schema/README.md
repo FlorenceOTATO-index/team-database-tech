@@ -5,7 +5,7 @@ Jue Wang · `jue/normalization` · 2026-10-05
 ## Start here
 
 1. **`relational-schema.md`** — the final database design. Every one of the
-   52 relations: columns, primary keys, foreign keys, row counts, and the
+   53 relations: columns, primary keys, foreign keys, row counts, and the
    design decisions (D1–D4). If you only read one file, read this.
 2. **`normalization.md`** — how we got there. For each normal form (1NF →
    2NF → 3NF), for the core tables and then all 33 child tables: the
