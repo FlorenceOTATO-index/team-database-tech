@@ -27,6 +27,7 @@ team-database-tech/
 │   ├── schema/       ← CREATE TABLE scripts, run in numeric order
 │   ├── load/         ← scripts that load processed data into MySQL
 │   └── queries/      ← analysis queries, one question per file
+├── dashboard/        ← Flask web app: live charts on top of the database
 ├── notebooks/        ← Jupyter exploration
 ├── docs/             ← ER diagram, data dictionary, proposal
 └── reports/          ← final report and slides
@@ -71,7 +72,20 @@ python scripts/download_data.py    # raw FARS data (~390 MB) into data/raw/
 python -m src.etl.clean_raw        # rebuilds data/processed/ from data/raw/ (~20 sec)
 ```
 
-To build the database, run the files in `sql/schema/` in order, then the ones in `sql/load/`.
+To build the database, follow [docs/database-setup.md](docs/database-setup.md): `sql/schema/01_create_tables.sql`, then the files in `sql/load/` in order. Then add the indexes and the saved view:
+
+```bash
+mysql -u root -p < sql/schema/indexes.sql
+mysql -u root -p < sql/schema/views.sql
+```
+
+## Dashboard
+
+```bash
+python dashboard/app.py            # then open http://127.0.0.1:5000
+```
+
+Every chart is a live query against the `fars` database. Each card has a **SQL** button that shows who wrote the query, the saved file from `sql/queries/`, the exact SQL that ran with the current filters, and the result rows. See [dashboard/README.md](dashboard/README.md) for the architecture.
 
 ---
 
